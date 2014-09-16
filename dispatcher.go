@@ -12,69 +12,17 @@ import (
 	"github.com/chuckpreslar/dispatcher/statuses"
 )
 
-// Namespace ...
-type Namespace struct {
-	prefix     []string
-	dispatcher *Dispatcher
-}
-
-// Get ...
-func (n *Namespace) Get(url string, handlers ...http.Handler) *Namespace {
-	url = fmt.Sprintf("%s/%s", strings.Join(n.prefix, "/"), strings.TrimLeft(url, "/"))
-	n.dispatcher.Route(methods.Get, url, handlers...)
-	return n
-}
-
-// Put ...
-func (n *Namespace) Put(url string, handlers ...http.Handler) *Namespace {
-	url = fmt.Sprintf("%s/%s", strings.Join(n.prefix, "/"), strings.TrimLeft(url, "/"))
-	n.dispatcher.Route(methods.Put, url, handlers...)
-	return n
-}
-
-// Post ...
-func (n *Namespace) Post(url string, handlers ...http.Handler) *Namespace {
-	url = fmt.Sprintf("%s/%s", strings.Join(n.prefix, "/"), strings.TrimLeft(url, "/"))
-	n.dispatcher.Route(methods.Post, url, handlers...)
-	return n
-}
-
-// Patch ...
-func (n *Namespace) Patch(url string, handlers ...http.Handler) *Namespace {
-	url = fmt.Sprintf("%s/%s", strings.Join(n.prefix, "/"), strings.TrimLeft(url, "/"))
-	n.dispatcher.Route(methods.Patch, url, handlers...)
-	return n
-}
-
-// Delete ...
-func (n *Namespace) Delete(url string, handlers ...http.Handler) *Namespace {
-	url = fmt.Sprintf("%s/%s", strings.Join(n.prefix, "/"), strings.TrimLeft(url, "/"))
-	n.dispatcher.Route(methods.Delete, url, handlers...)
-	return n
-}
-
-// Namespace ...
-func (n *Namespace) Namespace(prefix string) *Namespace {
-	prefix = strings.TrimSuffix(strings.TrimPrefix(prefix, "/"), "/")
-	return &Namespace{prefix: append(n.prefix, prefix), dispatcher: n.dispatcher}
-}
-
 // Dispatcher ...
 type Dispatcher struct {
-	router     *Router
+	trie       *Trie
 	middleware []http.Handler
-}
-
-// Namespace ...
-func (d *Dispatcher) Namespace(prefix string) *Namespace {
-	return &Namespace{prefix: []string{strings.TrimRight(prefix, "/")}, dispatcher: d}
 }
 
 // Route ...
 func (d *Dispatcher) Route(method, url string, handlers ...http.Handler) *Dispatcher {
 	method = strings.ToUpper(method)
 
-	var nodes = d.router.Route(url)
+	var nodes = d.trie.Establish(url)
 
 	for i := 0; i < len(nodes); i++ {
 		var node = nodes[i]
@@ -117,7 +65,7 @@ func (d *Dispatcher) Delete(url string, handlers ...http.Handler) *Dispatcher {
 // ServeHTTP ...
 func (d *Dispatcher) ServeHTTP(response http.ResponseWriter, request *http.Request) {
 	var (
-		match  = d.router.MatchURL(request.URL.Path)
+		match  = d.trie.MatchURL(request.URL.Path)
 		header = response.Header()
 	)
 
@@ -157,13 +105,13 @@ func (d *Dispatcher) Listen(port int) {
 func New() *Dispatcher {
 	var (
 		dispatcher = new(Dispatcher)
-		router     = new(Router)
+		trie       = new(Trie)
 		root       = new(Node)
 	)
 
 	root.child = make(map[interface{}]*Node)
-	router.root = root
-	dispatcher.router = router
+	trie.root = root
+	dispatcher.trie = trie
 	dispatcher.middleware = make([]http.Handler, 0, 0)
 	return dispatcher
 }

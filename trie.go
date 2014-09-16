@@ -21,6 +21,7 @@ type Node struct {
 
 // FindOrInsert ...
 func (n *Node) FindOrInsert(node *Node) *Node {
+
 	if result := n.Find(node); nil != result {
 		return result
 	}
@@ -73,24 +74,29 @@ type RouteInformation struct {
 	regexp *regexp.Regexp
 }
 
-// Router ...
-type Router struct {
+// Trie ...
+type Trie struct {
 	root *Node
 }
 
-// Route ...
-func (r *Router) Route(path string) []*Node {
-	return r.Define(strings.Split(path, "/"), r.root)
+// Establish ...
+func (t *Trie) Establish(path string) []*Node {
+	return t.Define(strings.Split(path, "/"), t.root)
 }
 
 // Define ...
-func (r *Router) Define(fragments []string, root *Node) []*Node {
+func (t *Trie) Define(fragments []string, root *Node) []*Node {
 	var (
 		fragment = fragments[0]
-		info     = r.Parse(fragment)
+		info     = t.Parse(fragment)
 		name     = info.name
 		nodes    = make([]*Node, 0, 0)
+		temp     = make([]*Node, 0, 0)
 	)
+
+	if 0 <= len(fragments)-1 {
+		fragments = fragments[1:]
+	}
 
 	for key := range info.keys {
 		var node = &Node{
@@ -131,26 +137,28 @@ func (r *Router) Define(fragments []string, root *Node) []*Node {
 		nodes[i] = root.FindOrInsert(nodes[i])
 	}
 
-	if 0 == len(fragments)-1 {
+	if 0 == len(fragments) {
 		return nodes
 	}
 
 	for i := 0; i < len(nodes); i++ {
-		nodes = r.Define(fragments[1:], nodes[i])
+		if 0 < len(fragments) {
+			temp = t.Define(fragments, nodes[i])
+		}
 	}
 
-	return nodes
+	return temp
 }
 
 // Parse ...
-func (r *Router) Parse(fragment string) RouteInformation {
+func (t *Trie) Parse(fragment string) RouteInformation {
 	var info RouteInformation
 	info.keys = make(map[interface{}]bool)
 
-	if r.IsValidSlug(fragment) {
+	if t.IsValidSlug(fragment) {
 		info.keys[fragment] = true
 		return info
-	} else if r.IsPipeSeparatedSlug(fragment) {
+	} else if t.IsPipeSeparatedSlug(fragment) {
 		var slugs = strings.Split(fragment, "|")
 
 		for i := 0; i < len(slugs); i++ {
@@ -172,7 +180,7 @@ func (r *Router) Parse(fragment string) RouteInformation {
 	if regexp.MustCompile(`^\(.+\)$`).MatchString(fragment) {
 		fragment = fragment[1 : len(fragment)-1]
 
-		if r.IsPipeSeparatedSlug(fragment) {
+		if t.IsPipeSeparatedSlug(fragment) {
 			var slugs = strings.Split(fragment, "|")
 
 			for i := 0; i < len(slugs); i++ {
@@ -187,9 +195,9 @@ func (r *Router) Parse(fragment string) RouteInformation {
 }
 
 // MatchURL ...
-func (r *Router) MatchURL(url string) *Match {
+func (t *Trie) MatchURL(url string) *Match {
 	var (
-		root      = r.root
+		root      = t.root
 		fragments = strings.Split(url, "/")
 		length    = len(fragments)
 		match     = new(Match)
@@ -254,11 +262,11 @@ top:
 }
 
 // IsValidSlug ...
-func (r *Router) IsValidSlug(slug string) bool {
+func (t *Trie) IsValidSlug(slug string) bool {
 	return slug == "" || regexp.MustCompile(`^[\w\.-]+$`).MatchString(slug)
 }
 
 // IsPipeSeparatedSlug ...
-func (r *Router) IsPipeSeparatedSlug(slug string) bool {
+func (t *Trie) IsPipeSeparatedSlug(slug string) bool {
 	return regexp.MustCompile(`^[\w\.\-][\w\.\-\|]+[\w\.\-]$`).MatchString(slug)
 }
