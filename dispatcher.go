@@ -12,14 +12,50 @@ import (
 	"github.com/chuckpreslar/dispatcher/statuses"
 )
 
+// Route ...
+type Route struct {
+	url        string
+	dispatcher *Dispatcher
+}
+
+// Get ...
+func (r *Route) Get(handlers ...http.Handler) *Route {
+	r.dispatcher.Get(r.url, handlers...)
+	return r
+}
+
+// Put ...
+func (r *Route) Put(handlers ...http.Handler) *Route {
+	r.dispatcher.Put(r.url, handlers...)
+	return r
+}
+
+// Post ...
+func (r *Route) Post(handlers ...http.Handler) *Route {
+	r.dispatcher.Post(r.url, handlers...)
+	return r
+}
+
+// Patch ...
+func (r *Route) Patch(handlers ...http.Handler) *Route {
+	r.dispatcher.Patch(r.url, handlers...)
+	return r
+}
+
+// Delete ...
+func (r *Route) Delete(handlers ...http.Handler) *Route {
+	r.dispatcher.Delete(r.url, handlers...)
+	return r
+}
+
 // Dispatcher ...
 type Dispatcher struct {
 	trie       *Trie
 	middleware []http.Handler
 }
 
-// Route ...
-func (d *Dispatcher) Route(method, url string, handlers ...http.Handler) *Dispatcher {
+// RegisterRouteHandlers ...
+func (d *Dispatcher) RegisterRouteHandlers(method, url string, handlers ...http.Handler) *Dispatcher {
 	method = strings.ToUpper(method)
 
 	var nodes = d.trie.Establish(url)
@@ -39,27 +75,32 @@ func (d *Dispatcher) Route(method, url string, handlers ...http.Handler) *Dispat
 
 // Get ...
 func (d *Dispatcher) Get(url string, handlers ...http.Handler) *Dispatcher {
-	return d.Route(methods.Get, url, handlers...)
+	return d.RegisterRouteHandlers(methods.Get, url, handlers...)
 }
 
 // Put ...
 func (d *Dispatcher) Put(url string, handlers ...http.Handler) *Dispatcher {
-	return d.Route(methods.Put, url, handlers...)
+	return d.RegisterRouteHandlers(methods.Put, url, handlers...)
 }
 
 // Post ...
 func (d *Dispatcher) Post(url string, handlers ...http.Handler) *Dispatcher {
-	return d.Route(methods.Post, url, handlers...)
+	return d.RegisterRouteHandlers(methods.Post, url, handlers...)
 }
 
 // Patch ...
 func (d *Dispatcher) Patch(url string, handlers ...http.Handler) *Dispatcher {
-	return d.Route(methods.Patch, url, handlers...)
+	return d.RegisterRouteHandlers(methods.Patch, url, handlers...)
 }
 
 // Delete ...
 func (d *Dispatcher) Delete(url string, handlers ...http.Handler) *Dispatcher {
-	return d.Route(methods.Delete, url, handlers...)
+	return d.RegisterRouteHandlers(methods.Delete, url, handlers...)
+}
+
+// Route ...
+func (d *Dispatcher) Route(url string) *Route {
+	return &Route{url: url, dispatcher: d}
 }
 
 // ServeHTTP ...
