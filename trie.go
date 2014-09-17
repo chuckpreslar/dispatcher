@@ -143,7 +143,7 @@ func (t *Trie) Define(fragments []string, root *Node) []*Node {
 
 	for i := 0; i < len(nodes); i++ {
 		if 0 < len(fragments) {
-			temp = t.Define(fragments, nodes[i])
+			temp = append(temp, t.Define(fragments, nodes[i])...)
 		}
 	}
 

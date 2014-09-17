@@ -123,3 +123,35 @@ func TestNamedRegexpMatch(t *testing.T) {
 	assert.Equal(t, node.name, "id", "failed to return correct node")
 
 }
+
+func TestPipedStringWithWildcard(t *testing.T) {
+	var (
+		trie = new(Trie)
+		root = new(Node)
+	)
+
+	root.child = make(map[interface{}]*Node)
+	trie.root = root
+
+	var (
+		nodes  = trie.Establish(`/api/v1/users|posts/:id`)
+		umatch = trie.MatchURL("/api/v1/users/1")
+		pmatch = trie.MatchURL("/api/v1/posts/1")
+	)
+
+	assert.NotNil(t, nodes, "failed to return nodes from `Establish`")
+	assert.NotNil(t, umatch, "failed to return match from `MatchURL`")
+	assert.NotNil(t, pmatch, "failed to return match from `MatchURL`")
+	assert.Equal(t, umatch.params["id"], "1", "failed to return correct node")
+	assert.Equal(t, pmatch.params["id"], "1", "failed to return correct node")
+
+	var (
+		unode   = umatch.node
+		pnode   = pmatch.node
+		uparent = unode.parent
+		pparent = pnode.parent
+	)
+
+	assert.Equal(t, uparent.key, "users", "failed to return appropriate named node")
+	assert.Equal(t, pparent.key, "posts", "failed to return appropriate named node")
+}
